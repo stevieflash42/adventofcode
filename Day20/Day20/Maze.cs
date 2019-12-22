@@ -16,7 +16,79 @@ namespace Day20
             this.Portals = BuildMazePortals(this);
         }
 
-        public MazeRow this[uint y] => (this.Rows.Length <= y) ? null : this.Rows[y];
+        public MazeRow this[int y] => (this.Rows.Length <= y) ? null : this.Rows[y];
+
+        public MazeElement GetLocation(int x, int y) => this[y]?[x];
+
+        public List<Direction> DetermineMoveableDirectionsFromPosition(int x, int y)
+        {
+            MazeElement current = GetLocation(x, y);
+            if (null == current)
+            {
+                throw new ArgumentOutOfRangeException("location does not exist");
+            }
+
+            MazeElement up = GetLocation(x, y - 1);
+            MazeElement down = GetLocation(x, y + 1);
+            MazeElement left = GetLocation(x - 1, y);
+            MazeElement right = GetLocation(x + 1, y);
+
+            List<Direction> theReturn = new List<Direction>();
+            if(CanWalkOnElement(up)) theReturn.Add(Direction.Up);
+            if (CanWalkOnElement(down)) theReturn.Add(Direction.Down);
+            if (CanWalkOnElement(left)) theReturn.Add(Direction.Left);
+            if (CanWalkOnElement(right)) theReturn.Add(Direction.Right);
+            return theReturn;
+        }
+
+        public (int x, int y) DeterminePositionAfterMovingToLocation(int x, int y)
+        {
+            MazeElement current = GetLocation(x, y);
+            if (null == current)
+            {
+                throw new ArgumentOutOfRangeException("location does not exist");
+            }
+
+            if (!CanWalkOnElement(current))
+            {
+                throw new ArgumentOutOfRangeException("cannot walk on element");
+            }
+
+            switch (current.Type)
+            {
+                case MazeElementType.OpenPassage:
+                    //if it's an open passage, then you're on the same spot
+                    return (x, y);
+                case MazeElementType.PortalPiece:
+                    MazeElement exitTile = FindExitPortal(FindPortalForPiece(current as PortalPiece)).InOutTile;
+                    if (null == exitTile)
+                    {
+                        throw new ArgumentOutOfRangeException("could not locate exit tile");
+                    }
+
+                    return (exitTile.X, exitTile.Y);
+            }
+
+            throw new ArgumentOutOfRangeException("unsupported tile type");
+        }
+
+        private Portal FindPortalForPiece(PortalPiece portalPiece) =>
+            this.Portals.FirstOrDefault(portal => portal.ContainsPortalPiece(portalPiece));
+
+        private Portal FindExitPortal(Portal entrancePortal)
+        {
+            if (null == entrancePortal) return null;
+            return this.Portals.FirstOrDefault(portal =>
+                !entrancePortal.Equals(portal) && portal.Name == entrancePortal.Name);
+        }
+
+        private static bool CanWalkOnElement(MazeElement elm)
+        {
+            if (null == elm) return false;
+            //you're only allowed to walk on open passage locations and portal pieces
+            // - assumption: technically there's 1 of the portal pieces you can't walk on, we're assuming the data is good and you should never get to it anyway
+            return elm.Type == MazeElementType.OpenPassage || elm.Type == MazeElementType.PortalPiece;
+        }
 
         private static Portal[] BuildMazePortals(Maze maze)
         {

@@ -15,6 +15,6 @@ namespace Day20
             strRow.ToCharArray().Select((charElement, x) => MazeElement.GetMazeElement(charElement, x, y))
                 .ToArray();
 
-        public MazeElement this[uint x] => (this.Elements.Length <= x) ? null : this.Elements[x];
+        public MazeElement this[int x] => (this.Elements.Length <= x) ? null : this.Elements[x];
     }
 }

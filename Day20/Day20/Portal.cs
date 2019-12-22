@@ -5,7 +5,10 @@ namespace Day20
 {
     public class Portal
     {
+        public MazeElement InOutTile { get; }
         public string Name { get; }
+        private PortalPiece p1;
+        private PortalPiece p2;
         public Portal(PortalPiece a1, PortalPiece a2, MazeElement inOutTile)
         {
             if (inOutTile.Type != MazeElementType.OpenPassage)
@@ -14,7 +17,13 @@ namespace Day20
             }
 
             this.Name = DeterminePortalName(a1, a2);
+            this.InOutTile = inOutTile;
+            this.p1 = a1;
+            this.p2 = a2;
         }
+
+        public bool ContainsPortalPiece(PortalPiece portalPiece) =>
+            this.p1.Equals(portalPiece) || this.p2.Equals(portalPiece);
 
         /// <summary>
         /// assumption: a1 and a2 are NOT the same, they're NOT in the same cardinal location, and they're adjacent

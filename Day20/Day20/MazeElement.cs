@@ -48,5 +48,17 @@ namespace Day20
             return (Math.Abs(a.X - b.X) == 1 && Math.Abs(a.Y - b.Y) == 0) ||
                    (Math.Abs(a.X - b.X) == 0 && Math.Abs(a.Y - b.Y) == 1);
         }
+
+        public override bool Equals(object obj)
+        {
+            if (null == obj) return false;
+            if (obj.GetType() != this.GetType()) return false;
+            if (obj is MazeElement mazeElm)
+            {
+                return this.X == mazeElm.X && this.Y == mazeElm.Y;
+            }
+
+            return obj.Equals(this);
+        }
     }
 }
