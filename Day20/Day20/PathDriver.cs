@@ -18,7 +18,7 @@ namespace Day20
         {
             (int startX, int startY, Direction startingMoveDirection) =
                 this.Maze.FindStartPositionAndMovementDirection();
-            MazePath startPath = new MazePath(startingMoveDirection, 0);
+            MazePath startPath = new MazePath(startingMoveDirection, 0, null);
             List<MazePath> paths = new List<MazePath> {startPath};
             DeterminePathsFromLocation(startX, startY, startPath, paths);
             return paths.Where(path => path.Finished && path.MadeToEnd).Min(path => path.Steps);
@@ -77,6 +77,10 @@ namespace Day20
 
             int nLastSteps = currentPath.Steps;
             Direction lastDirection = currentPath.LastDirectionMoved;
+            //we want to clone the instance so that it's not affected by the iterative-recursive runs
+            // - yes, that's a terrifying term: iterative-recursive
+            List<(int x, int y)> previouslyVisitedLocations =
+                new List<(int x, int y)>(currentPath.PreviouslyVisitedLocations);
             switch (directions.Count)
             {
                 //dead end
@@ -90,20 +94,29 @@ namespace Day20
                     for (var i = 0; i < directions.Count; i++)
                     {
                         Direction direction = directions[i];
+                        (int newX, int newY) = GetNewLocation(x, y, direction, out direction);
+                        //if we've been to this location before on this path then terminate the path
+                        if (currentPath.PreviouslyVisitedLocations.Contains((newX, newY)))
+                        {
+                            currentPath.SetFinished(false);
+                            //we want to CONTINUE and NOT RETURN because the other directions might be valid
+                            continue;
+                        }
+                        
                         if (i != 0)
                         {
-                            MazePath newPath = new MazePath(lastDirection, nLastSteps);
+                            MazePath newPath = new MazePath(lastDirection, nLastSteps, previouslyVisitedLocations);
                             allPathsTaken.Add(newPath);
                             newPath.Increment();
-                            (int newX, int newY) = GetNewLocation(x, y, direction, out direction);
                             newPath.LastDirectionMoved = direction;
+                            newPath.PreviouslyVisitedLocations.Add((newX, newY));
                             DeterminePathsFromLocation(newX, newY, newPath, allPathsTaken);
                         }
                         else
                         {
                             currentPath.Increment();
-                            (int newX, int newY) = GetNewLocation(x, y, directions[0], out direction);
                             currentPath.LastDirectionMoved = direction;
+                            currentPath.PreviouslyVisitedLocations.Add((newX, newY));
                             DeterminePathsFromLocation(newX, newY, currentPath, allPathsTaken);
                         }
                     }
