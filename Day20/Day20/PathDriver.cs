@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Day20.Enums;
-using Microsoft.Win32.SafeHandles;
 
 namespace Day20
 {
@@ -18,30 +16,42 @@ namespace Day20
 
         public int DetermineShortestPathThroughMaze()
         {
-            (int startX, int startY) = this.Maze.FindStartPosition();
-            MazePath startPath = new MazePath();
+            (int startX, int startY, Direction startingMoveDirection) =
+                this.Maze.FindStartPositionAndMovementDirection();
+            MazePath startPath = new MazePath(startingMoveDirection, 0);
             List<MazePath> paths = new List<MazePath> {startPath};
             DeterminePathsFromLocation(startX, startY, startPath, paths);
             return paths.Where(path => path.Finished && path.MadeToEnd).Min(path => path.Steps);
         }
 
-        private static (int newX, int newY) GetNewLocation(int x, int y, Direction direction)
+        private (int newX, int newY) GetNewLocation(int x, int y, Direction direction,
+            out Direction actualPreviousDirection)
         {
+            (int, int) theReturn = (x, y - 1);
             switch (direction)
             {
                 case Direction.Up:
-                    return (x, y - 1);
+                    theReturn = (x, y - 1);
+                    break;
                 case Direction.Down:
-                    return (x, y + 1);
+                    theReturn = (x, y + 1);
+                    break;
                 case Direction.Left:
-                    return (x - 1, y);
+                    theReturn = (x - 1, y);
+                    break;
                 case Direction.Right:
-                    return (x + 1, y);
+                    theReturn = (x + 1, y);
+                    break;
             }
 
-            throw new ArgumentOutOfRangeException("direction not supported");
+            theReturn = this.Maze.DeterminePositionAfterMovingToLocation(theReturn.Item1, theReturn.Item2,
+                out (bool bUsedPortal, Portal thePortal) portalOutput);
+
+            actualPreviousDirection = portalOutput.bUsedPortal ? portalOutput.thePortal.InOutRelationTo : direction;
+
+            return theReturn;
         }
-    
+
         private void DeterminePathsFromLocation(int x, int y, MazePath currentPath, List<MazePath> allPathsTaken)
         {
             //if we're at the end then terminate
@@ -51,11 +61,22 @@ namespace Day20
                 return;
             }
 
+            (int startX, int startY, Direction startingMoveDirection) =
+                this.Maze.FindStartPositionAndMovementDirection();
+            //there's a nasty case where the path can loop back around - we want to prevent this from happening
+            if (startX == x && startY == y && startingMoveDirection != currentPath.LastDirectionMoved)
+            {
+                currentPath.SetFinished(false);
+                return;
+            }
+
             List<Direction> directions = this.Maze.DetermineMoveableDirectionsFromPosition(x, y);
             //we don't want to travel the direction we just came from
             Direction directionWeJustCameFrom = DirectionHelper.GetOppositeDirection(currentPath.LastDirectionMoved);
             directions = directions.Where(direction => directionWeJustCameFrom != direction).ToList();
 
+            int nLastSteps = currentPath.Steps;
+            Direction lastDirection = currentPath.LastDirectionMoved;
             switch (directions.Count)
             {
                 //dead end
@@ -71,16 +92,18 @@ namespace Day20
                         Direction direction = directions[i];
                         if (i != 0)
                         {
-                            MazePath newPath = new MazePath(currentPath);
+                            MazePath newPath = new MazePath(lastDirection, nLastSteps);
                             allPathsTaken.Add(newPath);
                             newPath.Increment();
-                            (int newX, int newY) = GetNewLocation(x, y, direction);
+                            (int newX, int newY) = GetNewLocation(x, y, direction, out direction);
+                            newPath.LastDirectionMoved = direction;
                             DeterminePathsFromLocation(newX, newY, newPath, allPathsTaken);
                         }
                         else
                         {
                             currentPath.Increment();
-                            (int newX, int newY) = GetNewLocation(x, y, directions[0]);
+                            (int newX, int newY) = GetNewLocation(x, y, directions[0], out direction);
+                            currentPath.LastDirectionMoved = direction;
                             DeterminePathsFromLocation(newX, newY, currentPath, allPathsTaken);
                         }
                     }

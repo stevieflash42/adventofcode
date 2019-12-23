@@ -7,6 +7,7 @@ namespace Day20
     {
         public MazeElement InOutTile { get; }
         public string Name { get; }
+        public Direction InOutRelationTo { get; }
         private PortalPiece p1;
         private PortalPiece p2;
         public Portal(PortalPiece a1, PortalPiece a2, MazeElement inOutTile)
@@ -20,6 +21,7 @@ namespace Day20
             this.InOutTile = inOutTile;
             this.p1 = a1;
             this.p2 = a2;
+            this.InOutRelationTo = GetElmRelationshipToPortalPiece(this.p1, this.InOutTile);
         }
 
         public bool ContainsPortalPiece(PortalPiece portalPiece) =>
@@ -55,6 +57,38 @@ namespace Day20
 
             throw new InvalidOperationException(
                 "Could not determine the relationship between the portal pieces in order to name the portal");
+        }
+
+        /// <summary>
+        /// assumption: portalPiece and elm are NOT the same, they're NOT in the same cardinal location
+        /// </summary>
+        /// <param name="portalPiece">Doesn't matter which portalPiece you use. Assumption: the portal pieces are adjacent</param>
+        /// <param name="elm"></param>
+        /// <returns></returns>
+        private static Direction GetElmRelationshipToPortalPiece(PortalPiece portalPiece, MazeElement elm)
+        {
+            if (portalPiece.X > elm.X)
+            {
+                return Direction.Left;
+            }
+
+            if (elm.X > portalPiece.X)
+            {
+                return Direction.Right;
+            }
+
+            if (portalPiece.Y > elm.Y)
+            {
+                return Direction.Up;
+            }
+
+            if (elm.Y > portalPiece.Y)
+            {
+                return Direction.Down;
+            }
+
+            throw new InvalidOperationException(
+                "Could not determine the relationship between the portal piece and the element");
         }
     }
 }

@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using Day20.Enums;
 
 namespace Day20
@@ -12,18 +10,10 @@ namespace Day20
         public bool Finished { get; private set; }
         public int Steps { get; private set; }
 
-        public MazePath()
+        public MazePath(Direction startingMovementDirection, int nSteps)
         {
-        }
-
-        public MazePath(MazePath originalPath)
-        {
-            if (originalPath.Finished)
-            {
-                throw new ArgumentOutOfRangeException("originalPath cannot be finished");
-            }
-            this.Steps = originalPath.Steps;
-            this.LastDirectionMoved = originalPath.LastDirectionMoved;
+            this.LastDirectionMoved = startingMovementDirection;
+            this.Steps = nSteps;
         }
 
         public void Increment()
