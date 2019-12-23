@@ -7,6 +7,7 @@ namespace Day20
         static void Main(string[] args)
         {
             Maze maze = BuildMazeFromFile("Input.txt");
+            Console.WriteLine($"Shorted path is: {new PathDriver(maze).DetermineShortestPathThroughMaze()}");
             Console.Read();
         }
 

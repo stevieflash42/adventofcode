@@ -20,6 +20,34 @@ namespace Day20
 
         public MazeElement GetLocation(int x, int y) => this[y]?[x];
 
+        //caching to avoid wasted cycles
+        private Portal _aa;
+        public (int x, int y) FindStartPosition()
+        {
+            if (null != _zz) return (_aa.InOutTile.X, _aa.InOutTile.Y);
+            _aa = this.Portals.FirstOrDefault(portal => portal.Name == "AA");
+            if (null == _aa)
+            {
+                throw new NullReferenceException("bad data - portal AA doesn't exist");
+            }
+
+            return (_aa.InOutTile.X, _aa.InOutTile.Y);
+        }
+
+        //caching to avoid wasted cycles
+        private Portal _zz;
+        public (int x, int y) FindEndPosition()
+        {
+            if (null != _zz) return (_zz.InOutTile.X, _zz.InOutTile.Y);
+            _zz = this.Portals.FirstOrDefault(portal => portal.Name == "ZZ");
+            if (null == _zz)
+            {
+                throw new NullReferenceException("bad data - portal ZZ doesn't exist");
+            }
+
+            return (_zz.InOutTile.X, _zz.InOutTile.Y);
+        }
+
         public List<Direction> DetermineMoveableDirectionsFromPosition(int x, int y)
         {
             MazeElement current = GetLocation(x, y);
@@ -34,7 +62,7 @@ namespace Day20
             MazeElement right = GetLocation(x + 1, y);
 
             List<Direction> theReturn = new List<Direction>();
-            if(CanWalkOnElement(up)) theReturn.Add(Direction.Up);
+            if (CanWalkOnElement(up)) theReturn.Add(Direction.Up);
             if (CanWalkOnElement(down)) theReturn.Add(Direction.Down);
             if (CanWalkOnElement(left)) theReturn.Add(Direction.Left);
             if (CanWalkOnElement(right)) theReturn.Add(Direction.Right);
@@ -56,9 +84,10 @@ namespace Day20
 
             switch (current.Type)
             {
+                //if it's an open passage, then you're on the same spot
                 case MazeElementType.OpenPassage:
-                    //if it's an open passage, then you're on the same spot
                     return (x, y);
+                //if you're moving onto a portal piece then you need to be on the exit of the matching portal
                 case MazeElementType.PortalPiece:
                     MazeElement exitTile = FindExitPortal(FindPortalForPiece(current as PortalPiece)).InOutTile;
                     if (null == exitTile)
