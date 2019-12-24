@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Day20.Enums;
 
 namespace Day20
@@ -18,13 +19,22 @@ namespace Day20
         {
             (int startX, int startY, Direction startingMoveDirection) =
                 this.Maze.FindStartPositionAndMovementDirection();
-            MazePath startPath = new MazePath(startingMoveDirection, 0, null);
+            MazePath startPath = new MazePath(startingMoveDirection, 0, 0, null, null);
             List<MazePath> paths = new List<MazePath> {startPath};
-            DeterminePathsFromLocation(startX, startY, startPath, paths);
+            //https://stackoverflow.com/a/4513507
+            Thread thread = new Thread(() => { DeterminePathsFromLocation(startX, startY, startPath, paths); },
+                10000000);
+            thread.Start();
+            thread.Join();
+            //string strOutput = string.Join("\n\n", paths.Select(path => path.ToString()));
+            //MazePath whatICareAbout = paths.FirstOrDefault(path =>
+            //    path.ToString()
+            //        .Contains(
+            //            "Up => Up => Left => Left => Left => Left => Left => Left => Up => Up => Up => Up => Right => Right => Right => Right => Right => Right => Up"));
             return paths.Where(path => path.Finished && path.MadeToEnd).Min(path => path.Steps);
         }
 
-        private (int newX, int newY) GetNewLocation(int x, int y, Direction direction,
+        private (int newX, int newY, int nLevelIncrement) GetNewLocation(int x, int y, Direction direction,
             out Direction actualPreviousDirection)
         {
             (int, int) theReturn = (x, y - 1);
@@ -45,11 +55,18 @@ namespace Day20
             }
 
             theReturn = this.Maze.DeterminePositionAfterMovingToLocation(theReturn.Item1, theReturn.Item2,
-                out (bool bUsedPortal, Portal thePortal) portalOutput);
+                out (bool bUsedPortal, Portal exitPortal, Portal entrancePortal) portalOutput);
 
-            actualPreviousDirection = portalOutput.bUsedPortal ? portalOutput.thePortal.InOutRelationTo : direction;
+            actualPreviousDirection = portalOutput.bUsedPortal ? portalOutput.exitPortal.InOutRelationTo : direction;
 
-            return theReturn;
+            //you don't increment if you haven't gone through a portal
+            int nLevelIncrement = 0;
+            if (portalOutput.bUsedPortal)
+            {
+                nLevelIncrement = portalOutput.entrancePortal.IsOuterPortal ? -1 : 1;
+            }
+
+            return (theReturn.Item1, theReturn.Item2, nLevelIncrement);
         }
 
         private void DeterminePathsFromLocation(int x, int y, MazePath currentPath, List<MazePath> allPathsTaken)
@@ -57,7 +74,7 @@ namespace Day20
             //if we're at the end then terminate
             if (this.Maze.FindEndPosition() == (x, y))
             {
-                currentPath.SetFinished(true);
+                currentPath.SetFinished(currentPath.Level == 0);
                 return;
             }
 
@@ -67,49 +84,78 @@ namespace Day20
             if (startX == x && startY == y && startingMoveDirection != currentPath.LastDirectionMoved)
             {
                 currentPath.SetFinished(false);
+                currentPath.SetFinished(currentPath.Level == 0);
+                return;
+            }
+
+            //we're going to blow the recursive stack soon - just terminate
+            //if (allPathsTaken.Count > 2300)
+            //{
+            //    currentPath.SetFinished(false);
+            //    return;
+            //}
+
+            //terminate... we're getting out of control
+            if (allPathsTaken.Count > 1000)
+            {
+                currentPath.SetFinished(false);
                 return;
             }
 
             List<Direction> directions = this.Maze.DetermineMoveableDirectionsFromPosition(x, y);
             //we don't want to travel the direction we just came from
             Direction directionWeJustCameFrom = DirectionHelper.GetOppositeDirection(currentPath.LastDirectionMoved);
-            directions = directions.Where(direction => directionWeJustCameFrom != direction).ToList();
+            directions = directions.Where(direction =>
+            {
+                bool validDirection = directionWeJustCameFrom != direction;
+                if (!validDirection) return false;
+                //because we've written this declaratively we're validating the directions up here and it's causing multiple iterations of this calculation
+                // - todo: find a better way to do this?
+                (int _, int _, int nLevelIncrement) = GetNewLocation(x, y, direction, out direction);
+                //we can't go this direction because level movements below 0 aren't possible
+                return nLevelIncrement >= 0 || currentPath.Level != 0;
+            }).ToList();
 
+            int nLastLevel = currentPath.Level;
             int nLastSteps = currentPath.Steps;
             Direction lastDirection = currentPath.LastDirectionMoved;
             //we want to clone the instance so that it's not affected by the iterative-recursive runs
             // - yes, that's a terrifying term: iterative-recursive
             List<(int x, int y)> previouslyVisitedLocations =
                 new List<(int x, int y)>(currentPath.PreviouslyVisitedLocations);
+            List<Direction> movements = new List<Direction>(currentPath.Movements);
             switch (directions.Count)
             {
                 //dead end
                 case 0:
                     //humoring Murphy, but I'm pretty sure that it's impossible for this to be true
-                    currentPath.SetFinished(this.Maze.FindEndPosition() == (x, y));
+                    currentPath.SetFinished(this.Maze.FindEndPosition() == (x, y) && currentPath.Level == 0);
                     break;
                 case 1:
                 case 2:
                 case 3:
-                    for (var i = 0; i < directions.Count; i++)
+                    for (int i = 0; i < directions.Count; i++)
                     {
                         Direction direction = directions[i];
-                        (int newX, int newY) = GetNewLocation(x, y, direction, out direction);
-                        //if we've been to this location before on this path then terminate the path
-                        if (currentPath.PreviouslyVisitedLocations.Contains((newX, newY)))
-                        {
-                            currentPath.SetFinished(false);
-                            //we want to CONTINUE and NOT RETURN because the other directions might be valid
-                            continue;
-                        }
-                        
+                        (int newX, int newY, int nLevelIncrement) = GetNewLocation(x, y, direction, out direction);
+                        ////if we've been to this location before on this path then terminate the path
+                        //if (currentPath.PreviouslyVisitedLocations.Contains((newX, newY)))
+                        //{
+                        //    currentPath.SetFinished(false);
+                        //    //we want to CONTINUE and NOT RETURN because the other directions might be valid
+                        //    continue;
+                        //}
+
                         if (i != 0)
                         {
-                            MazePath newPath = new MazePath(lastDirection, nLastSteps, previouslyVisitedLocations);
+                            MazePath newPath = new MazePath(lastDirection, nLastSteps, nLastLevel,
+                                previouslyVisitedLocations, movements);
                             allPathsTaken.Add(newPath);
                             newPath.Increment();
                             newPath.LastDirectionMoved = direction;
                             newPath.PreviouslyVisitedLocations.Add((newX, newY));
+                            newPath.Movements.Add(direction);
+                            newPath.Level += nLevelIncrement;
                             DeterminePathsFromLocation(newX, newY, newPath, allPathsTaken);
                         }
                         else
@@ -117,6 +163,8 @@ namespace Day20
                             currentPath.Increment();
                             currentPath.LastDirectionMoved = direction;
                             currentPath.PreviouslyVisitedLocations.Add((newX, newY));
+                            currentPath.Movements.Add(direction);
+                            currentPath.Level += nLevelIncrement;
                             DeterminePathsFromLocation(newX, newY, currentPath, allPathsTaken);
                         }
                     }

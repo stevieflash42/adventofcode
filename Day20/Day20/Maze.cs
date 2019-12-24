@@ -12,7 +12,7 @@ namespace Day20
 
         public Maze(string[] arStrMaze)
         {
-            this.Rows = arStrMaze.Select((strRow, y) => new MazeRow(strRow, y)).ToArray();
+            this.Rows = arStrMaze.Select((strRow, y) => new MazeRow(strRow, y, y == arStrMaze.Length - 1)).ToArray();
             this.Portals = BuildMazePortals(this);
         }
 
@@ -24,7 +24,7 @@ namespace Day20
         private Portal _aa;
         public (int x, int y, Direction startingMoveDirection) FindStartPositionAndMovementDirection()
         {
-            if (null != _zz) return (_aa.InOutTile.X, _aa.InOutTile.Y, _aa.InOutRelationTo);
+            if (null != _aa) return (_aa.InOutTile.X, _aa.InOutTile.Y, _aa.InOutRelationTo);
             _aa = this.Portals.FirstOrDefault(portal => portal.Name == "AA");
             if (null == _aa)
             {
@@ -74,10 +74,10 @@ namespace Day20
         /// </summary>
         /// <param name="x"></param>
         /// <param name="y"></param>
-        /// <param name="portalOutput">thePortal won't be null when bUsedPortal is true</param>
+        /// <param name="portalOutput">exitPortal and entrancePortal won't be null when bUsedPortal is true</param>
         /// <returns></returns>
         public (int x, int y) DeterminePositionAfterMovingToLocation(int x, int y,
-            out (bool bUsedPortal, Portal thePortal) portalOutput)
+            out (bool bUsedPortal, Portal exitPortal, Portal entrancePortal) portalOutput)
         {
             MazeElement current = GetLocation(x, y);
             if (null == current)
@@ -94,18 +94,19 @@ namespace Day20
             {
                 //if it's an open passage, then you're on the same spot
                 case MazeElementType.OpenPassage:
-                    portalOutput = (false, null);
+                    portalOutput = (false, null, null);
                     return (x, y);
                 //if you're moving onto a portal piece then you need to be on the exit of the matching portal
                 case MazeElementType.PortalPiece:
-                    Portal exitPortal = FindExitPortal(FindPortalForPiece(current as PortalPiece));
+                    Portal entrancePortal = FindPortalForPiece(current as PortalPiece);
+                    Portal exitPortal = FindExitPortal(entrancePortal);
                     MazeElement exitTile = exitPortal.InOutTile;
                     if (null == exitTile)
                     {
                         throw new ArgumentOutOfRangeException("could not locate exit tile");
                     }
 
-                    portalOutput = (true, exitPortal);
+                    portalOutput = (true, exitPortal, entrancePortal);
                     return (exitTile.X, exitTile.Y);
             }
 

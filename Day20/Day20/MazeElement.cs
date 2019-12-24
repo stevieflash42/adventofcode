@@ -8,12 +8,14 @@ namespace Day20
         public MazeElementType Type { get; }
         public int X { get; }
         public int Y { get; }
+        public bool IsOuterEdge { get; }
 
-        public MazeElement(MazeElementType type, int x, int y)
+        public MazeElement(MazeElementType type, int x, int y, bool isOuterEdge)
         {
             this.Type = type;
             this.X = x;
             this.Y = y;
+            this.IsOuterEdge = isOuterEdge;
         }
 
         private static MazeElementType DetermineMazeElementType(char charElement)
@@ -31,15 +33,15 @@ namespace Day20
             }
         }
 
-        public static MazeElement GetMazeElement(char charElement, int x, int y)
+        public static MazeElement GetMazeElement(char charElement, int x, int y, bool isOuterEdge)
         {
             MazeElementType type = DetermineMazeElementType(charElement);
             switch (type)
             {
                 case MazeElementType.PortalPiece:
-                    return new PortalPiece(type, charElement, x, y);
+                    return new PortalPiece(type, charElement, x, y, isOuterEdge);
                 default:
-                    return new MazeElement(type, x, y);
+                    return new MazeElement(type, x, y, isOuterEdge);
             }
         }
 

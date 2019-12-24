@@ -6,7 +6,7 @@ namespace Day20
     {
         public char PartName { get; }
 
-        public PortalPiece(MazeElementType type, char charElement, int x, int y) : base(type, x, y)
+        public PortalPiece(MazeElementType type, char charElement, int x, int y, bool isOuterEdge) : base(type, x, y, isOuterEdge)
         {
             this.PartName = charElement;
         }

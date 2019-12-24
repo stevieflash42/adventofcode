@@ -5,6 +5,10 @@ namespace Day20
 {
     public class Portal
     {
+        /// <summary>
+        /// If false the it's an Inner portal
+        /// </summary>
+        public bool IsOuterPortal { get; }
         public MazeElement InOutTile { get; }
         public string Name { get; }
         public Direction InOutRelationTo { get; }
@@ -17,6 +21,7 @@ namespace Day20
                 throw new ArgumentOutOfRangeException("inOutTile");
             }
 
+            this.IsOuterPortal = a1.IsOuterEdge || a2.IsOuterEdge;
             this.Name = DeterminePortalName(a1, a2);
             this.InOutTile = inOutTile;
             this.p1 = a1;
