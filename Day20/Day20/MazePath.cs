@@ -30,16 +30,16 @@ namespace Day20
         public bool MadeToEnd { get; private set; }
         public bool Finished { get; private set; }
         public int Steps { get; private set; }
-        public List<(int x, int y)> PreviouslyVisitedLocations { get; private set; }
-        public List<Direction> Movements { get; private set; }
+        public List<(int x, int y, int level)> PreviouslyVisitedLocations { get; private set; }
+        //public List<Direction> Movements { get; private set; }
 
-        public MazePath(Direction startingMovementDirection, int nSteps, int nLevel, List<(int x, int y)> previouslyVisitedLocations, List<Direction> movements)
+        public MazePath(Direction startingMovementDirection, int nSteps, int nLevel, List<(int x, int y, int level)> previouslyVisitedLocations/*, List<Direction> movements*/)
         {
             this.LastDirectionMoved = startingMovementDirection;
             this.Steps = nSteps;
-            this.PreviouslyVisitedLocations = previouslyVisitedLocations ?? new List<(int x, int y)>();
+            this.PreviouslyVisitedLocations = previouslyVisitedLocations ?? new List<(int x, int y, int level)>();
             this.Level = nLevel;
-            this.Movements = movements ?? new List<Direction>();
+            //this.Movements = movements ?? new List<Direction>();
         }
 
         public void Increment()
@@ -55,10 +55,10 @@ namespace Day20
             //Console.WriteLine($"Ended at Level {this.Level} with {this.Steps} Steps");
         }
 
-        public override string ToString()
-        {
-            return string.Join(" => ", this.Movements.Select(mov => $"{mov.ToString()}"));
-            //return string.Join(" => ", this.PreviouslyVisitedLocations.Select(loc => $"({loc.x}, {loc.y})"));
-        }
+        //public override string ToString()
+        //{
+        //    return string.Join(" => ", this.Movements.Select(mov => $"{mov.ToString()}"));
+        //    //return string.Join(" => ", this.PreviouslyVisitedLocations.Select(loc => $"({loc.x}, {loc.y})"));
+        //}
     }
 }
